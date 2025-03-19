@@ -1,0 +1,26 @@
+name: cost-optimization-gke-vpa-recommendations-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/cost-optimization-gke-vpa-recommendations-ci.yml'
+      - 'cost-optimization/gke-vpa-recommendations/**'
+  pull_request:
+    paths:
+      - '.github/workflows/cost-optimization-gke-vpa-recommendations-ci.yml'
+      - 'cost-optimization/gke-vpa-recommendations/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build metric-exporter container
+        run: |
+          cd cost-optimization/gke-vpa-recommendations/metrics-exporter
+          docker build --tag metric-exporter .
+      - name: Validate terraform
+        run: |
+          cd cost-optimization/gke-vpa-recommendations/terraform
+          terraform init
+          terraform validate

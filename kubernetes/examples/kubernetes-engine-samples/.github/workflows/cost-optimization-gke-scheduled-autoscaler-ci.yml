@@ -1,0 +1,21 @@
+name: cost-optimization-gke-scheduled-autoscaler-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/cost-optimization-gke-scheduled-autoscaler-ci.yml'
+      - 'cost-optimization/gke-scheduled-autoscaler/**'
+  pull_request:
+    paths:
+      - '.github/workflows/cost-optimization-gke-scheduled-autoscaler-ci.yml'
+      - 'cost-optimization/gke-scheduled-autoscaler/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build gke-scheduled-autoscaler container
+        run: |
+          cd cost-optimization/gke-scheduled-autoscaler
+          docker build --tag gke-scheduled-autoscaler .

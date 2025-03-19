@@ -1,0 +1,32 @@
+{
+  "displayName": "Under Replicated Partition",
+  "documentation": {
+    "content": "## ALERT - UNDER REPLICATED PARTITIONS\nPolicy **${policy.display_name}** triggered an incident.\n",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Under Replicated Partitions",
+      "conditionThreshold": {
+        "filter": "resource.type = \"prometheus_target\" AND metric.type = \"prometheus.googleapis.com/kafka_server_replicamanager_total_underreplicatedpartitions_value/unknown\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "crossSeriesReducer": "REDUCE_NONE",
+            "perSeriesAligner": "ALIGN_MEAN"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "1800s"
+  },
+  "combiner": "OR",
+  "enabled": true
+}

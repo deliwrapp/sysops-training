@@ -1,0 +1,70 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastdash
+  labels:
+    app: fastdash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastdash
+  template:
+    metadata:
+      labels:
+        app: fastdash
+    spec:
+      containers:
+        - name: main
+          image: us-central1-docker.pkg.dev/PROJECT_ID/models/fastdash:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MODEL_PREDICTION
+              value: "http://t5-inference:8080/predictions/t5-small/1.0"
+            - name: MODEL_MANAGEMENT
+              value: "http://t5-inference:8081/predictions/models/t5-small"
+          resources:
+            limits:
+              cpu: 250m
+              memory: 512Mi
+              ephemeral-storage: 1Gi
+            requests:
+              cpu: 250m
+              memory: 512Mi
+              ephemeral-storage: 1Gi
+          ports:
+            - containerPort: 8050
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastdash
+  labels:
+    app: fastdash
+spec:
+  type: ClusterIP
+  selector:
+    app: fastdash
+  ports:
+    - port: 8050
+      name: http
+      targetPort: http

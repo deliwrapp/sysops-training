@@ -1,0 +1,21 @@
+name: quickstarts-hello-app-tls-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/quickstarts-hello-app-tls-ci.yml'
+      - 'quickstarts/hello-app-tls/**'
+  pull_request:
+    paths:
+      - '.github/workflows/quickstarts-hello-app-tls-ci.yml'
+      - 'quickstarts/hello-app-tls/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build hello-app-tls container
+        run: |
+          cd quickstarts/hello-app-tls
+          docker build --tag hello-app-tls .

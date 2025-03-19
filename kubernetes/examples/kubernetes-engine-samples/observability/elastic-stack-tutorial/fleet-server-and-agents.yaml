@@ -1,0 +1,309 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# [START gke_monitoring_elastic_stack_fleet_agent]
+apiVersion: agent.k8s.elastic.co/v1alpha1
+kind: Agent
+metadata:
+  name: fleet-server
+  namespace: elastic-system
+spec:
+  version: 8.9.0
+  kibanaRef:
+    name: kibana
+    namespace: elastic-system
+  elasticsearchRefs:
+    - name: elasticsearch
+      namespace: elastic-system
+  mode: fleet
+  fleetServerEnabled: true
+  policyID: eck-fleet-server
+  deployment:
+    replicas: 1
+    podTemplate:
+      metadata:
+        labels:
+          app.kubernetes.io/name: fleet-server
+          app.kubernetes.io/version: "8.9.0"
+          app.kubernetes.io/component: "agent"
+          app.kubernetes.io/part-of: "elk"
+      spec:
+        containers:
+          - name: agent
+            resources:
+              requests:
+                memory: 512Mi
+                cpu: 250m
+                ephemeral-storage: 10Gi
+              limits:
+                memory: 512Mi
+                cpu: 250m
+                ephemeral-storage: 10Gi
+        volumes:
+          - name: "agent-data"
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "standard-rwo"
+                  resources:
+                    requests:
+                      storage: 10Gi
+        serviceAccountName: fleet-server
+        automountServiceAccountToken: true
+        securityContext:
+          runAsUser: 0
+# [END gke_monitoring_elastic_stack_fleet_agent]
+---
+# [START gke_monitoring_elastic_stack_generic_nodes_agent]
+apiVersion: agent.k8s.elastic.co/v1alpha1
+kind: Agent
+metadata:
+  name: elastic-agent-generic-nodes
+  namespace: elastic-system
+spec:
+  version: 8.9.0
+  kibanaRef:
+    name: kibana
+    namespace: elastic-system
+  fleetServerRef:
+    name: fleet-server
+    namespace: elastic-system
+  mode: fleet
+  policyID: eck-agent
+  daemonSet:
+    podTemplate:
+      metadata:
+        labels:
+          app.kubernetes.io/name: agent
+          app.kubernetes.io/version: "8.9.0"
+          app.kubernetes.io/component: "agent"
+          app.kubernetes.io/part-of: "elk"
+      spec:
+        priorityClassName: user-daemonset-priority
+        volumes:
+          - name: "agent-data"
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "standard-rwo"
+                  resources:
+                    requests:
+                      storage: 10Gi
+        containers:
+          - name: agent
+            resources:
+              requests:
+                cpu: 100m
+                memory: 512Mi
+                ephemeral-storage: 100Mi
+              limits:
+                cpu: 100m
+                memory: 512Mi
+                ephemeral-storage: 100Mi
+        serviceAccountName: elastic-agent
+        automountServiceAccountToken: true
+        securityContext:
+          runAsUser: 0
+# [END gke_monitoring_elastic_stack_generic_nodes_agent]
+---
+# [START gke_monitoring_elastic_stack_balanced_nodes_agent]
+apiVersion: agent.k8s.elastic.co/v1alpha1
+kind: Agent
+metadata:
+  name: elastic-agent-balanced-nodes
+  namespace: elastic-system
+spec:
+  version: 8.9.0
+  kibanaRef:
+    name: kibana
+    namespace: elastic-system
+  fleetServerRef:
+    name: fleet-server
+    namespace: elastic-system
+  mode: fleet
+  policyID: eck-agent
+  daemonSet:
+    podTemplate:
+      metadata:
+        labels:
+          app.kubernetes.io/name: agent
+          app.kubernetes.io/version: "8.9.0"
+          app.kubernetes.io/component: "agent"
+          app.kubernetes.io/part-of: "elk"
+      spec:
+        nodeSelector:
+          cloud.google.com/compute-class: "Balanced"
+        priorityClassName: user-daemonset-priority
+        volumes:
+          - name: "agent-data"
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: "standard-rwo"
+                  resources:
+                    requests:
+                      storage: 10Gi
+        containers:
+          - name: agent
+            resources:
+              requests:
+                cpu: 100m
+                memory: 512Mi
+                ephemeral-storage: 100Mi
+              limits:
+                cpu: 100m
+                memory: 512Mi
+                ephemeral-storage: 100Mi
+        serviceAccountName: elastic-agent
+        automountServiceAccountToken: true
+        securityContext:
+          runAsUser: 0
+# [END gke_monitoring_elastic_stack_balanced_nodes_agent]
+---
+# [START gke_monitoring_elastic_stack_fleet_agent_cluster_role]
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fleet-server
+rules:
+- apiGroups: [""]
+  resources:
+  - pods
+  - namespaces
+  - nodes
+  verbs:
+  - get
+  - watch
+  - list
+- apiGroups: ["coordination.k8s.io"]
+  resources:
+  - leases
+  verbs:
+  - get
+  - create
+  - update
+# [END gke_monitoring_elastic_stack_fleet_agent_cluster_role]
+---
+# [START gke_monitoring_elastic_stack_fleet_agent_service_account]
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fleet-server
+  namespace: elastic-system
+# [END gke_monitoring_elastic_stack_fleet_agent_service_account]
+---
+# [START gke_monitoring_elastic_stack_fleet_agent_cluster_role_binding]
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: fleet-server
+subjects:
+- kind: ServiceAccount
+  name: fleet-server
+  namespace: elastic-system
+roleRef:
+  kind: ClusterRole
+  name: fleet-server
+  apiGroup: rbac.authorization.k8s.io
+# [END gke_monitoring_elastic_stack_fleet_agent_cluster_role_binding]
+---
+# [START gke_monitoring_elastic_stack_node_agent_cluster_role]
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: elastic-agent
+rules:
+- apiGroups: [""]
+  resources:
+  - pods
+  - nodes
+  - namespaces
+  - events
+  - services
+  - configmaps
+  verbs:
+  - get
+  - watch
+  - list
+- apiGroups: ["coordination.k8s.io"]
+  resources:
+  - leases
+  verbs:
+  - get
+  - create
+  - update
+- nonResourceURLs:
+  - "/metrics"
+  verbs:
+  - get
+- apiGroups: ["extensions"]
+  resources:
+    - replicasets
+  verbs:
+  - "get"
+  - "list"
+  - "watch"
+- apiGroups:
+  - "apps"
+  resources:
+  - statefulsets
+  - deployments
+  - replicasets
+  - daemonsets
+  verbs:
+  - "get"
+  - "list"
+  - "watch"
+- apiGroups:
+  - ""
+  resources:
+  - nodes/stats
+  verbs:
+  - get
+- apiGroups:
+  - "batch"
+  resources:
+  - jobs
+  - cronjobs
+  verbs:
+  - "get"
+  - "list"
+  - "watch"
+# [END gke_monitoring_elastic_stack_node_agent_cluster_role]
+---
+# [START gke_monitoring_elastic_stack_node_agent_service_account]
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: elastic-agent
+  namespace: elastic-system
+# [END gke_monitoring_elastic_stack_node_agent_service_account]
+---
+# [START gke_monitoring_elastic_stack_node_agent_cluster_role_binding]
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: elastic-agent
+subjects:
+- kind: ServiceAccount
+  name: elastic-agent
+  namespace: elastic-system
+roleRef:
+  kind: ClusterRole
+  name: elastic-agent
+  apiGroup: rbac.authorization.k8s.io
+# [END gke_monitoring_elastic_stack_node_agent_cluster_role_binding]

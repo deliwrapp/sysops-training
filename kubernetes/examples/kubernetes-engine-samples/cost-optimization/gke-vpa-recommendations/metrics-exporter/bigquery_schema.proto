@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+message Record {
+    string run_date = 1;       
+    string metric_name = 2;                       
+    string location = 3;          
+    string project_id = 4;                     
+    string cluster_name = 5;           
+    string controller_name = 6;                  
+    string controller_type = 7;   
+    string namespace_name = 8;        
+    string container_name = 9;   
+
+    message Points {
+        string metric_timestamp = 1; 
+        float metric_value = 2; 
+    }
+    repeated Points points_array = 10; 
+}
+

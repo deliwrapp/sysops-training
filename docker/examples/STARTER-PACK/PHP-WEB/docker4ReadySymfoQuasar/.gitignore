@@ -1,0 +1,12 @@
+.idea/
+mutagen.yml.lock
+
+data
+/data
+
+api/public/bundles/
+api/var/
+api/vendor/
+
+app/node_modules
+app/dist

@@ -1,0 +1,32 @@
+---
+- name: Déploiement depuis Repository Git
+  hosts: your_server
+  become: yes
+
+  vars:
+    destination_path: "/var/www"  # Chemin de destination du déploiement
+    git_repo_url: "git@gitlab.com:your_username/your_symfony_project.git"  # URL du dépôt GitLab
+    git_branch: "main"  # Branche par défaut pour le déploiement, peut être remplacée par une variable
+    git_single_branch: "yes" # Défini si l'ensembe des branche sont cloné ou non
+
+  tasks:
+    - name: Vérifier l'installation de Git
+      become: yes
+      command: "which git"
+      register: git_installed
+      ignore_errors: yes
+
+    - name: Installer Git si nécessaire
+      become: yes
+      package:
+        name: git
+        state: present
+      when: git_installed.rc != 0
+
+    - name: Cloner le dépôt depuis Git avec la branche spécifiée
+      become: yes
+      git:
+        repo: "{{ git_repo_url }}"
+        dest: "{{ destination_path }}"
+        version: "{{ git_branch }}"
+        single_branch: "{{ git_single_branch }}"

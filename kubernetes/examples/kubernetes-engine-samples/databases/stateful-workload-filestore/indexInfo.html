@@ -1,0 +1,64 @@
+<!--
+ Copyright 2022 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ -->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Stateful Workload Tutorial</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+
+    <script>
+        $(function() {
+            $('#includedContent').load('indexData.html', function() {
+                const rows = $('text').length;
+                $('#totalRows').html(rows);
+                if (rows > 0) {
+                    $('#latestDate').html($('text')[rows - 1].innerHTML);
+                    $('#latestWriter').html($('text2')[rows - 1].innerHTML);
+                }
+
+                const allWriters = $('text2');
+                const mySet = new Set();
+                for (let i = 0; i < allWriters.length; i++) {
+                    mySet.add(allWriters[i].innerHTML);
+                }
+                $('#uniqueWriters').html(mySet.size);
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <h1>Latest Info </h1>
+    <div id="latestInfo">
+        <h2>Latest Date:</h2>
+        <h3 id="latestDate"></h3>
+        <h2>Latest Writer:</h2>
+        <h3 id="latestWriter"></h3>
+        <h2>Total entries:</h2>
+        <h3 id="totalRows"></h3>
+        <h2>Number of Unique Writers:</h2>
+        <h3 id="uniqueWriters"></h3>
+    </div>
+
+    <hr>
+    <h1>Write History: </h1>
+    <div id="includedContent"></div>
+</body>
+
+
+</html>

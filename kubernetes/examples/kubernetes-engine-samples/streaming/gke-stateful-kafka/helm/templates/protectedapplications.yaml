@@ -1,0 +1,33 @@
+{{- $relnamespace := .Release.Namespace -}}
+{{- if .Values.gkeBackup -}}
+{{- if .Values.gkeBackup.enabled -}}
+{{- range .Values.gkeBackup.protectedApplications }}
+---
+apiVersion: gkebackup.gke.io/v1alpha2
+kind: ProtectedApplication
+metadata:
+  name: {{ .name }}
+  namespace: {{ $relnamespace | quote }}
+  {{- with .annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- with .labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  resourceSelection:
+    type: Selector
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: {{ .name }}
+{{- with .components }}
+  components:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

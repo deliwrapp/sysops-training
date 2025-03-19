@@ -1,0 +1,21 @@
+name: quickstarts-hello-app-cdn-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/quickstarts-hello-app-cdn-ci.yml'
+      - 'quickstarts/hello-app-cdn/**'
+  pull_request:
+    paths:
+      - '.github/workflows/quickstarts-hello-app-cdn-ci.yml'
+      - 'quickstarts/hello-app-cdn/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build hello-app-cdn container
+        run: |
+          cd quickstarts/hello-app-cdn
+          docker build --tag hello-app-cdn .

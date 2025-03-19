@@ -1,0 +1,94 @@
+---
+  - name: Install and Launch the Simple NodeJS Application
+    hosts: testserver
+    vars_files:
+       - gitsecrets.yml
+    vars:
+       - destdir: /apps/sampleapp
+    pre_tasks:
+      - name : install dependencies before starting
+        become: yes
+        register: aptinstall
+        apt:
+           name: 
+            - nodejs
+            - npm
+            - git
+           state: latest
+           update_cache: yes
+      
+      - name : validate the nodejs installation
+        debug: msg="Installation of node is Successfull"
+        when: aptinstall is changed
+    
+    tasks:
+       - name: Version of Node and NPM
+         shell:
+            "npm -v && nodejs -v"
+         register: versioninfo
+       - name: Validate if the installation is intact
+         assert:
+          that: "versioninfo is changed"
+      
+       - name: Create Dest Directory if not exists
+         become: yes
+         file: 
+          path: "{{ destdir }}"
+          state: directory
+          owner: vagrant
+          group: vagrant
+          mode: 0755
+       - name: Download the NodeJS code from the GitRepo
+         become: yes
+         git:
+            repo: 'https://{{gittoken}}@github.com/AKSarav/SampleNodeApp.git'
+            dest: "{{ destdir }}"
+       - name: Change the ownership of the directory
+         become: yes
+         file:
+           path: "{{destdir}}"
+           owner: "vagrant"
+         register: chgrpout
+       - name: Install Dependencies with NPM install command
+         shell:
+            "npm install"
+         args:
+            chdir: "{{ destdir }}"
+         register: npminstlout
+       - name: Debug npm install command
+         debug: msg='{{npminstlout.stdout_lines}}'
+       - name: Start the App
+         async: 10
+         poll: 0
+         shell:
+            "(node index.js > nodesrv.log 2>&1 &)"
+         args:
+           chdir: "{{ destdir }}"
+         register: appstart
+       - name: Validating the port is open
+         tags: nodevalidate
+         wait_for:
+           host: "localhost"
+           port: 5000
+           delay: 10
+           timeout: 30
+           state: started
+           msg: "NodeJS server is not running"
+    post_tasks:
+        - name: notify Slack that the servers have been updated 
+          tags: slack
+          community.general.slack:
+            token: T026******PF/B02U*****N/WOa7r**********Ao0jnWn
+            msg: |
+                ### StatusUpdate ###
+                – ------------------------------------
+                ``
+                `Server`: {{ansible_host}}
+                `Status`: NodeJS Sample Application installed successfully
+                – ------------------------------------
+            channel: '#ansible'
+            color: good
+            username: 'Ansible on {{ inventory_hostname }}'
+            link_names: 0
+            parse: 'none'
+          delegate_to: localhost

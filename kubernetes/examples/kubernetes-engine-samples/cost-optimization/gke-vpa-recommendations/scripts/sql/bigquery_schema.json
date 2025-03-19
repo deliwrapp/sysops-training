@@ -1,0 +1,65 @@
+[
+    
+    {
+        "name": "run_date",
+        "type": "TIMESTAMP",
+        "mode": "NULLABLE"
+    },
+    {
+        "name": "metric_name",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+      "name": "location",
+      "type": "STRING",
+      "mode": "NULLABLE"
+    },
+    {
+      "name": "project_id",
+      "type": "STRING",
+      "mode": "NULLABLE"
+    },
+    {
+      "name": "cluster_name",
+      "type": "STRING",
+      "mode": "NULLABLE"
+    },
+    {
+      "name": "controller_name",
+      "type": "STRING",
+      "mode": "NULLABLE"
+    },
+    {
+      "name": "controller_type",
+      "type": "STRING",
+      "mode": "NULLABLE"
+    },
+    {
+      "name": "namespace_name",
+      "type": "STRING",
+      "mode": "NULLABLE"
+    },
+    {
+        "name": "container_name",
+        "type": "STRING",
+        "mode": "NULLABLE"
+    },
+    {
+      "name": "points_array",
+      "type": "RECORD",
+      "mode": "REPEATED",
+      "fields": [
+        {
+          "name": "metric_timestamp",
+          "type": "TIMESTAMP",
+          "mode": "NULLABLE"
+        },
+        {
+            "name": "metric_value",
+            "type": "FLOAT",
+            "mode": "NULLABLE"
+          }
+      ]
+    }
+  ]

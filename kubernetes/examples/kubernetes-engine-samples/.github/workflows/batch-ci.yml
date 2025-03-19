@@ -1,0 +1,21 @@
+name: batch-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/batch-ci.yml'
+      - 'batch/**'
+  pull_request:
+    paths:
+      - '.github/workflows/batch-ci.yml'
+      - 'batch/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build aiml-workloads container
+        run: |
+          cd batch/aiml-workloads/src
+          docker build --tag aiml-workloads .

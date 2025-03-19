@@ -1,0 +1,36 @@
+{
+  "displayName": "Kafka Active Broker Count",
+  "documentation": {
+    "content": "## ALERT - BROKER OFFLINE\nPolicy **${policy.display_name}** triggered an incident.\n",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Broker Offline",
+      "conditionThreshold": {
+        "filter": "resource.type = \"prometheus_target\" AND metric.type = \"prometheus.googleapis.com/kafka_controller_kafkacontroller_activebrokercount_value/unknown\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "groupByFields": [
+              "metric.label.container"
+            ],
+            "perSeriesAligner": "ALIGN_MEAN"
+          }
+        ],
+        "comparison": "COMPARISON_LT",
+        "duration": "0s",
+        "trigger": {
+          "count": 1
+        },
+        "thresholdValue": 3
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "1800s"
+  },
+  "combiner": "OR",
+  "enabled": true
+}

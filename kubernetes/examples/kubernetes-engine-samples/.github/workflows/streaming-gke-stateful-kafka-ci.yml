@@ -1,0 +1,29 @@
+name: streaming-gke-stateful-kafka-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/streaming-gke-stateful-kafka-ci.yml'
+      - 'streaming/gke-stateful-kafka/**'
+  pull_request:
+    paths:
+      - '.github/workflows/streaming-gke-stateful-kafka-ci.yml'
+      - 'streaming/gke-stateful-kafka/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate GKE Autopilot TF
+        run: |
+          cd streaming/gke-stateful-kafka/terraform/gke-autopilot
+          terraform init
+          terraform validate
+      - name: Validate GKE Standard TF
+        run: |
+          cd streaming/gke-stateful-kafka/terraform/gke-standard
+          terraform init
+          terraform validate
+      
+      

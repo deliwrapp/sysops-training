@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>  -->
+    <script src="tfjs.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="top-bar">
+            <div class="controls">
+                <label for="mode" class="label">Choose Mode:</label>
+                <select id="mode" class="dropdown">
+                    <option value="manual">Play Manually (Arrow Keys)</option>
+                    <option value="model">AI Mode</option>
+                </select>
+                <button id="startGame" class="btn">Start Game</button>
+                <button id="restartGame" class="btn" style="display:none;">Restart Game</button>
+            </div>
+            <div class="scoreboard">
+                <h2>Score: <span id="score">0</span></h2>
+                <h2>High Score: <span id="highScore">0</span></h2>
+                <h2>Generation: <span id="genCount">0</span></h2>
+            </div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    <script src="ai.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

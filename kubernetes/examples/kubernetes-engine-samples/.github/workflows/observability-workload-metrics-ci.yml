@@ -1,0 +1,21 @@
+name: observability-workload-metrics-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/observability-workload-metrics-ci.yml'
+      - 'observability/workload-metrics/**'
+  pull_request:
+    paths:
+      - '.github/workflows/observability-workload-metrics-ci.yml'
+      - 'observability/workload-metrics/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build workload-metrics container
+        run: |
+          cd observability/workload-metrics
+          docker build --tag workload-metrics .

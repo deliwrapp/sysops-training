@@ -1,0 +1,136 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: databases.spotahome.com/v1
+kind: RedisFailover
+metadata:
+  name: my-target-cluster
+spec:
+  redis:
+    replicas: 3
+    affinity: &affinity
+      nodeAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+            - key: "app.stateful/component"
+              operator: In
+              values:
+              - "redis-operator"
+    tolerations: &tolerations
+    - key: "app.stateful/component"
+      operator: "Equal"
+      value: "redis-operator"
+      effect: NoSchedule
+    topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: "topology.kubernetes.io/zone"
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          redisfilovers.databases.spotahome.com/name: my-target-cluster
+          app.kubernetes.io/component: redis
+    podAnnotations:
+      cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    resources:
+      requests:
+        cpu: "1"
+        memory: 4Gi
+      limits:
+        cpu: "2"
+        memory: 4Gi
+    storage:
+      persistentVolumeClaim:
+        metadata:
+          name: my-target-cluster-data
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 2Gi
+          storageClassName: premium-rwo
+    customConfig:
+    - "client-output-buffer-limit slave 10737418240 10737418240 60"
+    - "repl-backlog-size 5gb"
+    exporter: 
+      enabled: true
+      image: oliver006/redis_exporter:v1.43.1
+      args:
+        - --include-system-metrics
+        - --web.telemetry-path
+        - /metrics
+      env:
+        - name: REDIS_EXPORTER_LOG_FORMAT
+          value: txt
+  bootstrapNode:
+    host: "redis-my-source-cluster.redis.svc.redis-source.local"
+  auth:
+    secretPath: my-user
+  sentinel:
+    replicas: 3
+    affinity: *affinity
+    tolerations: *tolerations
+    topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: "topology.kubernetes.io/zone"
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          redisfailovers.databases.spotahome.com/name: my-source-cluster
+          app.kubernetes.io/component: sentinel
+    podAnnotations:
+      cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 500Mi
+      limits:
+        cpu: 500m
+        memory: 500Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-my-target-cluster
+spec:
+  clusterIP: None
+  ports:
+  - name: redis
+    port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/name: my-target-cluster
+    redisfailovers-role: master
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-my-target-cluster-replicas
+spec:
+  clusterIP: None
+  ports:
+  - name: redis
+    port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    app.kubernetes.io/component: redis
+    app.kubernetes.io/name: my-target-cluster
+  type: ClusterIP
+

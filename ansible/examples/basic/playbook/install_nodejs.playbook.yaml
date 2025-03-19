@@ -1,0 +1,20 @@
+---
+- name: Installation Node JS
+  hosts: your_server
+  become: yes
+
+  vars:
+    node_version: "20"  # Version Node.js souhaitée
+
+  tasks:
+
+    - name: Vérifier l'installation de Node.js
+      become: yes
+      command: "node -v | grep 'v{{ node_version }}'"
+      register: node_installed
+      ignore_errors: yes
+
+    - name: Installer Node.js si nécessaire
+      become: yes
+      command: "curl -sL https://deb.nodesource.com/setup_{{ node_version }}.x | sudo -E bash - && sudo apt-get install -y nodejs"
+      when: node_installed.rc != 0

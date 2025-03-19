@@ -1,0 +1,105 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# [START gke_networking_dpv2_observability_cluster_pod_monitoring]
+apiVersion: monitoring.googleapis.com/v1
+kind: ClusterPodMonitoring
+metadata:
+  name: advanced-datapath-observability-metrics
+spec:
+  selector:
+    matchLabels:
+      k8s-app: cilium
+  endpoints:
+  - port: flowmetrics
+    interval: 60s
+    metricRelabeling:
+    # only keep denormalized pod flow metrics
+    - sourceLabels: [__name__]
+      regex: 'pod_flow_(ingress|egress)_flows_count'
+      action: keep
+    # extract pod name
+    - sourceLabels: [__name__, destination]
+      regex: 'pod_flow_ingress_flows_count;([a-zA-Z0-9-\.]+)/([a-zA-Z0-9-\.]+)'
+      replacement: '${2}'
+      targetLabel: pod_name
+      action: replace
+    - sourceLabels: [__name__, source]
+      regex: 'pod_flow_egress_flows_count;([a-zA-Z0-9-\.]+)/([a-zA-Z0-9-\.]+)'
+      replacement: '${2}'
+      targetLabel: pod_name
+      action: replace
+    # extract workload name by removing 2 last "-XXX" parts
+    - sourceLabels: [pod_name]
+      regex: '([a-zA-Z0-9-\.]+)((-[a-zA-Z0-9\.]+){2})'
+      replacement: '${1}'
+      targetLabel: workload_name
+      action: replace
+    # extract workload name by removing one "-XXX" part when pod name has only 2 parts (eg. daemonset)
+    - sourceLabels: [pod_name]
+      regex: '([a-zA-Z0-9\.]+)((-[a-zA-Z0-9\.]+){1})'
+      replacement: '${1}'
+      targetLabel: workload_name
+      action: replace
+    # extract pod namespace
+    - sourceLabels: [__name__, destination]
+      regex: 'pod_flow_ingress_flows_count;([a-zA-Z0-9-\.]+)/([a-zA-Z0-9-\.]+)'
+      replacement: '${1}'
+      targetLabel: namespace_name
+      action: replace
+    - sourceLabels: [__name__, source]
+      regex: 'pod_flow_egress_flows_count;([a-zA-Z0-9-\.]+)/([a-zA-Z0-9-\.]+)'
+      replacement: '${1}'
+      targetLabel: namespace_name
+      action: replace
+    # extract remote workload name
+    - sourceLabels: [__name__, source]
+      regex: 'pod_flow_ingress_flows_count;([a-zA-Z0-9-\.]+)/([a-zA-Z0-9-\.]+)'
+      replacement: '${2}'
+      targetLabel: remote_workload
+      action: replace
+    - sourceLabels: [__name__, destination]
+      regex: 'pod_flow_egress_flows_count;([a-zA-Z0-9-\.]+)/([a-zA-Z0-9-\.]+)'
+      replacement: '${2}'
+      targetLabel: remote_workload
+      action: replace
+    # extract remote workload namespace
+    - sourceLabels: [__name__, source]
+      regex: 'pod_flow_ingress_flows_count;([a-zA-Z0-9-\.]+)/([a-zA-Z0-9-\.]+)'
+      replacement: '${1}'
+      targetLabel: remote_namespace
+      action: replace
+    - sourceLabels: [__name__, destination]
+      regex: 'pod_flow_egress_flows_count;([a-zA-Z0-9-\.]+)/([a-zA-Z0-9-\.]+)'
+      replacement: '${1}'
+      targetLabel: remote_namespace
+      action: replace
+    # default remote workload class to "pod"
+    - replacement: 'pod'
+      targetLabel: remote_class
+      action: replace
+    # extract remote workload class from reserved identity
+    - sourceLabels: [__name__, source]
+      regex: 'pod_flow_ingress_flows_count;reserved:([^/]*)'
+      replacement: '${1}'
+      targetLabel: remote_class
+      action: replace
+    - sourceLabels: [__name__, destination]
+      regex: 'pod_flow_egress_flows_count;reserved:([^/]*)'
+      replacement: '${1}'
+      targetLabel: remote_class
+      action: replace
+  targetLabels:
+    metadata: []
+# [END gke_networking_dpv2_observability_cluster_pod_monitoring]

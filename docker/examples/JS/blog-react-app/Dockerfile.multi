@@ -1,0 +1,32 @@
+# Stage 1: Build the application
+FROM node:21.6-alpine3.18 AS builder
+
+# Set the working directory for the build stage
+WORKDIR /app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy the application source code into the container
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Stage 2: Create the final image
+FROM nginx:1.20
+
+# Set the working directory within the container
+WORKDIR /app
+
+# Copy the built application files from the builder stage to the nginx html directory
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# Expose port 80 for the web server
+EXPOSE 80
+
+# Start nginx in the foreground
+CMD ["nginx", "-g", "daemon off;"]

@@ -1,0 +1,16 @@
+version: '3.3'
+
+services:
+  
+  exporter:
+    image: dockersamples/aspnet-monitoring-exporter:${BUILD_NUMBER:-latest}
+    build:      
+      context: ./exporter
+
+  prometheus:
+    build:      
+      context: ./prometheus
+
+  web:
+    build:      
+      context: ./website

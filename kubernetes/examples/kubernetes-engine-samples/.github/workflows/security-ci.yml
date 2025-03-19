@@ -1,0 +1,21 @@
+name: security-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/security-ci.yml'
+      - 'security/**'
+  pull_request:
+    paths:
+      - '.github/workflows/security-ci.yml'
+      - 'security/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build wi-secrets container
+        run: |
+          cd security/wi-secrets
+          docker build --tag wi-secrets .

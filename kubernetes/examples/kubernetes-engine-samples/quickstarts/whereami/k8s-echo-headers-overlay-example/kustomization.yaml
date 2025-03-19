@@ -1,0 +1,12 @@
+nameSuffix: "-echo-headers"
+labels:
+- includeSelectors: true
+  includeTemplates: true
+  pairs:
+    app: whereami-echo-headers
+resources:
+- ../k8s
+patches:
+- path: cm-flag.yaml
+  target:
+    kind: ConfigMap

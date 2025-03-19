@@ -1,0 +1,51 @@
+
+###> symfony/framework-bundle ###
+/.htaccess
+/.env
+/.env.save
+/.env.local
+/.env.local.php
+/.env.*.local
+/config/secrets/prod/prod.decrypt.private.php
+/public/bundles/
+/var/
+var/
+/vendor/
+vendor/
+###< symfony/framework-bundle ###
+
+###> symfony/web-server-bundle ###
+#/.web-server-pid
+###< symfony/web-server-bundle ###
+
+###> NPM and frontend assets building cruft ###
+#node_modules/
+#npm-debug.log
+#yarn-error.log
+#build_assets.sh
+###< NPM and frontend assets building cruft ###
+
+###> symfony/webpack-encore-bundle ###
+#/node_modules/
+#/public/build/
+#npm-debug.log
+#yarn-error.log
+###< symfony/webpack-encore-bundle ###
+
+###> Platfom-specific files ###
+.DS_Store
+thumbs.db
+Vagrantfile
+.vagrant*
+.idea
+.php-version
+.vscode/*
+*.code-workspace
+appveyor.yml
+.editorconfig
+###<  Platfom-specific files ###
+
+###> Docker ###
+#docker-compose.override.yml
+#docker-compose.override.yaml
+###< Docker ###

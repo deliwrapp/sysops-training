@@ -1,0 +1,34 @@
+name: streaming-gke-kafka-strimzi-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/streaming-gke-kafka-strimzi-ci.yml'
+      - 'streaming/kafka/**'
+  pull_request:
+    paths:
+      - '.github/workflows/streaming-gke-kafka-strimzi-ci.yml'
+      - 'streaming/kafka/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate GKE Autopilot TF
+        run: |
+          cd streaming/kafka/terraform/gke-autopilot
+          terraform init
+          terraform validate
+      - name: Validate GKE Standard TF
+        run: |
+          cd streaming/kafka/terraform/gke-standard
+          terraform init
+          terraform validate
+      - name: Validate Mirror-maker TF
+        run: |
+          cd streaming/kafka/terraform/gke-replication
+          terraform init
+          terraform validate
+      
+      

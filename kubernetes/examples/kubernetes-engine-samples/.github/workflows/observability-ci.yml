@@ -1,0 +1,21 @@
+name: observability-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/observability-ci.yml'
+      - 'observability/**'
+  pull_request:
+    paths:
+      - '.github/workflows/observability-ci.yml'
+      - 'observability/**'
+jobs:
+  distributed-tracing:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build distributed-tracing container
+        run: |
+          cd observability/distributed-tracing
+          docker build .

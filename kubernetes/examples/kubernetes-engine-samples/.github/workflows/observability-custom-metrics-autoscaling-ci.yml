@@ -1,0 +1,25 @@
+name: observability-custom-metrics-autoscaling-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/observability-custom-metrics-autoscaling-ci.yml'
+      - 'observability/custom-metrics-autoscaling/**'
+  pull_request:
+    paths:
+      - '.github/workflows/observability-custom-metrics-autoscaling-ci.yml'
+      - 'observability/custom-metrics-autoscaling/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build direct-to-sd container
+        run: |
+          cd observability/custom-metrics-autoscaling/direct-to-sd
+          docker build --tag direct-to-sd .
+      - name: build prometheus-dummy-exporter container
+        run: |
+          cd observability/custom-metrics-autoscaling/google-managed-prometheus
+          docker build --tag google-managed-prometheus .

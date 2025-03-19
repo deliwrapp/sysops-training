@@ -1,0 +1,21 @@
+name: databases-stateful-workload-filestore-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/databases-stateful-workload-filestore-ci.yml'
+      - 'databases/stateful-workload-filestore/**'
+  pull_request:
+    paths:
+      - '.github/workflows/databases-stateful-workload-filestore-ci.yml'
+      - 'databases/stateful-workload-filestore/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build stateful-workload-filestore container
+        run: |
+          cd databases/stateful-workload-filestore
+          docker build --tag stateful-workload-filestore .

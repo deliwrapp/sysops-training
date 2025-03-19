@@ -1,0 +1,314 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# [START gke_batch_airflow_helm_values]
+# [START gke_batch_airflow_helm_values_ingress]
+ingress:
+  web:
+    enabled: true
+    annotations:
+      networking.gke.io/managed-certificates: "airflow"
+      networking.gke.io/v1beta1.FrontendConfig: airflow
+      kubernetes.io/ingress.global-static-ip-name: airflow
+      kubernetes.io/ingress.class: gce
+    path: "/"
+    pathType: "Prefix"
+    hosts:
+      - airflow.BASE_DOMAIN
+# [END gke_batch_airflow_helm_values_ingress]
+
+# Airflow executor
+executor: "KubernetesExecutor"
+
+extraEnvFrom: |
+  - secretRef:
+      name: 'airflow-google-oauth-creds'
+
+# Airflow database & redis config
+# [START gke_batch_airflow_helm_values_metadata_db_connection]
+data:
+  metadataConnection:
+    user: airflow-metadata
+    protocol: postgresql
+    host: airflow-metadata-db
+    port: 5432
+    db: airflow-metadata
+    sslmode: disable
+# [END gke_batch_airflow_helm_values_metadata_db_connection]
+
+# Airflow Worker Config
+# [START gke_batch_airflow_helm_values_workers_config]
+workers:
+  serviceAccount:
+    create: false
+    name: airflow
+
+  podAnnotations:
+    gke-gcsfuse/volumes: "true"
+
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClassName: standard-rwo
+
+  resources:
+    limits:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+
+  nodeSelector:
+    group: "workers"
+
+  tolerations:
+    - key: group
+      operator: Equal
+      value: "workers"
+      effect: NoSchedule
+# [END gke_batch_airflow_helm_values_workers_config]
+
+# Airflow scheduler settings
+# [START gke_batch_airflow_helm_values_scheduler_config]
+scheduler:
+  serviceAccount:
+    create: false
+    name: airflow
+
+  podAnnotations:
+    gke-gcsfuse/volumes: "true"
+
+  resources:
+    limits:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+
+  logGroomerSidecar:
+    enabled: true
+    resources:
+      limits:
+        cpu: 250m
+        memory: 512Mi
+        ephemeral-storage: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+        ephemeral-storage: 1Gi
+# [END gke_batch_airflow_helm_values_scheduler_config]
+
+# Airflow database migration job settings
+# [START gke_batch_airflow_helm_values_migrate_database_job_config]
+migrateDatabaseJob:
+  enabled: true
+
+  resources:
+    limits:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+# [END gke_batch_airflow_helm_values_migrate_database_job_config]
+
+# Airflow webserver settings
+# [START gke_batch_airflow_helm_values_webserver_config]
+webserver:
+  serviceAccount:
+    create: false
+    name: airflow
+
+  podAnnotations:
+    gke-gcsfuse/volumes: "true"
+
+  livenessProbe:
+    initialDelaySeconds: 120
+    timeoutSeconds: 30
+    failureThreshold: 5
+    periodSeconds: 60
+
+  readinessProbe:
+    initialDelaySeconds: 120
+    timeoutSeconds: 30
+    failureThreshold: 5
+    periodSeconds: 60
+
+  resources:
+    limits:
+      cpu: 250m
+      memory: 1.5Gi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 250m
+      memory: 1.5Gi
+      ephemeral-storage: 1Gi
+
+  defaultUser:
+    enabled: false
+
+  webserverConfig: |
+    import os
+    from flask_appbuilder.security.manager import AUTH_OAUTH
+    from airflow.www.security import AirflowSecurityManager
+
+    AUTH_TYPE = AUTH_OAUTH
+    SECURITY_MANAGER_CLASS = AirflowSecurityManager
+
+    AUTH_USER_REGISTRATION = True  # allow users who are not already in the FAB DB
+    AUTH_USER_REGISTRATION_ROLE = "Admin"  # this role will be given in addition to any AUTH_ROLES_MAPPING
+
+    OAUTH_PROVIDERS = [
+        {
+            "name": "google",
+            "icon": "fa-google",
+            "token_key": "access_token",
+            "remote_app": {
+                "client_id": os.environ.get("GOOGLE_OAUTH_CLIENT_ID"),
+                "client_secret": os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET"),
+                "api_base_url": "https://www.googleapis.com/oauth2/v2/",
+                "client_kwargs": {"scope": "email profile"},
+                "request_token_url": None,
+                "access_token_url": "https://oauth2.googleapis.com/token",
+                "authorize_url": "https://accounts.google.com/o/oauth2/auth",
+                "jwks_uri": "https://www.googleapis.com/oauth2/v3/certs",
+            },
+        },
+    ]
+
+    AUTH_ROLES_SYNC_AT_LOGIN = True
+    PERMANENT_SESSION_LIFETIME = 1800
+# [END gke_batch_airflow_helm_values_webserver_config]
+
+# Airflow Triggerer Config
+# [START gke_batch_airflow_helm_values_trigger_config]
+triggerer:
+  enabled: true
+
+  serviceAccount:
+    create: false
+    name: airflow
+
+  podAnnotations:
+    gke-gcsfuse/volumes: "true"
+
+  persistence:
+    enabled: true
+    size: 10Gi
+
+  resources:
+    limits:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+
+  logGroomerSidecar:
+    enabled: true
+
+    resources:
+      limits:
+        cpu: 250m
+        memory: 512Mi
+        ephemeral-storage: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+        ephemeral-storage: 1Gi
+# [END gke_batch_airflow_helm_values_trigger_config]
+
+# StatsD settings
+# [START gke_batch_airflow_helm_values_statsd_config]
+statsd:
+  enabled: true
+
+  resources:
+    limits:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+# [END gke_batch_airflow_helm_values_statsd_config]
+
+# Configuration for the redis provisioned by the chart
+# [START gke_batch_airflow_helm_values_redis_config]
+redis:
+  enabled: true
+
+  resources:
+    limits:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+# [END gke_batch_airflow_helm_values_redis_config]
+
+# This runs as a CronJob to cleanup old pods.
+# [START gke_batch_airflow_helm_values_cleanup_job_config]
+cleanup:
+  enabled: true
+
+  resources:
+    limits:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+# [END gke_batch_airflow_helm_values_cleanup_job_config]
+
+postgresql:
+  enabled: false
+
+# [START gke_batch_airflow_helm_values_dags_persistence_config]
+dags:
+  persistence:
+    enabled: true
+    existingClaim: "airflow-dags-gcs"
+# [END gke_batch_airflow_helm_values_dags_persistence_config]
+# [END gke_batch_airflow_helm_values]
+  # gitSync:
+  #   enabled: true
+  #   repo: https://github.com/apache/airflow.git
+  #   branch: main
+  #   subPath: "tests/dags"
+  #   wait: 5
+  #   resources:
+  #     limits:
+  #       cpu: 250m
+  #       memory: 512Mi
+  #       ephemeral-storage: 1Gi
+  #     requests:
+  #       cpu: 250m
+  #       memory: 512Mi
+  #       ephemeral-storage: 1Gi

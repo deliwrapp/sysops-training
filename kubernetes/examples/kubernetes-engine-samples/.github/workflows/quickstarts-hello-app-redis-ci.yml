@@ -1,0 +1,21 @@
+name: quickstarts-hello-app-redis-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/quickstarts-hello-app-redis-ci.yml'
+      - 'quickstarts/hello-app-redis/**'
+  pull_request:
+    paths:
+      - '.github/workflows/quickstarts-hello-app-redis-ci.yml'
+      - 'quickstarts/hello-app-redis/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build hello-app-redis container
+        run: |
+          cd quickstarts/hello-app-redis
+          docker build --tag hello-app-redis .

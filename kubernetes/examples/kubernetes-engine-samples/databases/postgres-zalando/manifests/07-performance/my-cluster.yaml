@@ -1,0 +1,88 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# [START gke_databases_postgres_zalando_operator_postgresql_cluster]
+apiVersion: "acid.zalan.do/v1"
+kind: postgresql
+metadata:
+  name: my-cluster
+spec:
+  dockerImage: ghcr.io/zalando/spilo-15:3.0-p1
+  teamId: "my-team"
+  numberOfInstances: 3
+  users:
+    mydatabaseowner:
+    - superuser
+    - createdb
+    myuser: []
+  databases:
+    mydatabase: mydatabaseowner
+# [START gke_databases_postgres_zalando_operator_postgresql_cluster_parameters]
+  postgresql:
+    version: "15"
+    parameters:
+      # shared_buffers: "256MB"
+      # effective_cache_size: "512MB"
+      max_connections: "100"
+      password_encryption: scram-sha-256
+  # patroni:
+  #   pg_hba:
+  #     - host all all all md5
+# [END gke_databases_postgres_zalando_operator_postgresql_cluster_parameters]
+# [START gke_databases_postgres_zalando_operator_postgresql_cluster_volume]
+  volume:
+    storageClass: premium-rwo
+    size: 10Gi
+# [END gke_databases_postgres_zalando_operator_postgresql_cluster_volume]
+  enableShmVolume: true
+# [START gke_databases_postgres_zalando_operator_postgresql_cluster_connection_pooler]
+  enableConnectionPooler: true
+  enableReplicaConnectionPooler: true
+  connectionPooler:
+    numberOfInstances: 3
+    mode: "session"
+    schema: "pooler"
+    user: "pooler"
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 250m
+        memory: 512Mi
+# [END gke_databases_postgres_zalando_operator_postgresql_cluster_connection_pooler]
+  podAnnotations:
+    cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+  tolerations:
+  - key: "app.stateful/component"
+    operator: "Equal"
+    value: "postgres-operator"
+    effect: NoSchedule
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 1
+      preference:
+        matchExpressions:
+        - key: "app.stateful/component"
+          operator: In
+          values:
+          - "postgres-operator"
+  resources:
+    requests:
+      cpu: 2000m
+      memory: 4Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+# [END gke_databases_postgres_zalando_operator_postgresql_cluster]

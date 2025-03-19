@@ -1,0 +1,84 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# [START gke_monitoring_elastic_stack_elasticsearch]
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: elasticsearch
+  namespace: elastic-system
+spec:
+  version: "8.9.0"
+  volumeClaimDeletePolicy: DeleteOnScaledownOnly
+  podDisruptionBudget:
+    spec:
+      minAvailable: 2
+      selector:
+        matchLabels:
+          elasticsearch.k8s.elastic.co/cluster-name: elasticsearch
+  nodeSets:
+    - name: default
+      config:
+        node.roles: ["master", "data", "ingest", "ml", "remote_cluster_client"]
+      podTemplate:
+        metadata:
+          labels:
+            app.kubernetes.io/name: elasticsearch
+            app.kubernetes.io/version: "8.9.0"
+            app.kubernetes.io/component: "elasticsearch"
+            app.kubernetes.io/part-of: "elk"
+        spec:
+          nodeSelector:
+            cloud.google.com/compute-class: "Balanced"
+          initContainers:
+            - name: max-map-count-check
+              command:
+                - sh
+                - -c
+                - while true; do mmc=$(cat /proc/sys/vm/max_map_count); if test ${mmc} -eq 262144; then exit 0; fi; sleep 1; done
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 16Mi
+                  ephemeral-storage: 16Mi
+                limits:
+                  cpu: 10m
+                  memory: 16Mi
+                  ephemeral-storage: 16Mi
+          containers:
+            - name: elasticsearch
+              resources:
+                requests:
+                  cpu: 990m
+                  memory: 4080Mi
+                  ephemeral-storage: 1008Mi
+                limits:
+                  cpu: 1000m
+                  memory: 4080Mi
+                  ephemeral-storage: 1008Mi
+              env:
+                - name: ES_JAVA_OPTS
+                  value: "-Xms2g -Xmx2g"
+      count: 3
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data # Do not change this name unless you set up a volume mount for the data path.
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 2Gi
+            storageClassName: standard-rwo
+# [END gke_monitoring_elastic_stack_elasticsearch]

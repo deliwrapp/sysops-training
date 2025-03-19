@@ -1,0 +1,10 @@
+
+# This is a placeholder Compose file. 
+# Modify it as per your sample app.
+
+services:
+  app:
+    build: ./
+    ports:
+      - "8080:80"
+

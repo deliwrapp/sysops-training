@@ -1,0 +1,21 @@
+name: quickstarts-whereami-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/quickstarts-whereami-ci.yml'
+      - 'quickstarts/whereami/**'
+  pull_request:
+    paths:
+      - '.github/workflows/quickstarts-whereami-ci.yml'
+      - 'quickstarts/whereami/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build whereami container
+        run: |
+          cd quickstarts/whereami
+          docker build --tag whereami .

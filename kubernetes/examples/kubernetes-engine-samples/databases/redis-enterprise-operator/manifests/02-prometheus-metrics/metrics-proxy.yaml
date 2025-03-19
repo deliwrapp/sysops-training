@@ -1,0 +1,80 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes  1;
+    error_log  /var/log/nginx/error.log warn;
+    events {
+      worker_connections  10240;
+    }
+    http {
+      server {
+          listen       80;
+          location / {
+            proxy_pass https://gke-rec-prom:8070;
+            proxy_http_version 1.1;
+            proxy_ssl_verify off;
+            proxy_set_header Host $http_host;
+            proxy_set_header X-Forwarded-For $remote_addr;
+          }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics-proxy
+spec:
+  selector:
+    matchLabels:
+      redis.io/cluster: gke-rec
+      component: metrics-proxy
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        redis.io/cluster: gke-rec
+        component: metrics-proxy
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 80
+        volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+      volumes:
+      - name: nginx-conf
+        configMap:
+          name: nginx-conf
+          items:
+            - key: nginx.conf
+              path: nginx.conf

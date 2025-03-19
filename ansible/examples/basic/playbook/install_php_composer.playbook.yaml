@@ -1,0 +1,35 @@
+---
+- name: Installation de PHP
+  hosts: your_server
+  become: yes
+
+  vars:
+    php_version: "8.2"  # Version PHP souhaitée
+
+  tasks:
+
+    - name: Vérifier l'installation de PHP
+      become: yes
+      command: "php -v | grep 'PHP {{ php_version }}'"
+      register: php_installed
+      ignore_errors: yes
+
+    - name: Installer PHP si nécessaire
+      become: yes
+      package:
+        name: "php{{ php_version }}"
+        state: present
+      when: php_installed.rc != 0
+
+    - name: Vérifier l'installation de Composer
+      become: yes
+      command: "which composer"
+      register: composer_installed
+      ignore_errors: yes
+
+    - name: Installer Composer si nécessaire
+      become: yes
+      command: "php -r \"copy('https://getcomposer.org/installer', 'composer-setup.php');\""
+      args:
+        creates: "/usr/local/bin/composer"
+      when: composer_installed.rc != 0

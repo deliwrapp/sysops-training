@@ -1,0 +1,25 @@
+name: quickstarts-guestbook-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/quickstarts-guestbook-ci.yml'
+      - 'quickstarts/guestbook/**'
+  pull_request:
+    paths:
+      - '.github/workflows/quickstarts-guestbook-ci.yml'
+      - 'quickstarts/guestbook/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build redis-follower container
+        run: |
+          cd quickstarts/guestbook/redis-follower
+          docker build --tag redis-follower .
+      - name: build php-redis container
+        run: |
+          cd quickstarts/guestbook/php-redis
+          docker build --tag php-redis .

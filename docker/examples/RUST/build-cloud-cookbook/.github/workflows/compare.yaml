@@ -1,0 +1,19 @@
+name: Compare Builders
+on:
+    workflow_dispatch:
+
+jobs:
+  build_local:
+    uses: ./.github/workflows/build.yaml
+    secrets: inherit
+    with:
+      builder_type: local
+      platforms: linux/amd64,linux/arm64
+
+  build_cloud:
+    uses: ./.github/workflows/build.yaml
+    secrets: inherit
+    with:
+      builder_type: cloud
+      platforms: linux/amd64,linux/arm64
+            

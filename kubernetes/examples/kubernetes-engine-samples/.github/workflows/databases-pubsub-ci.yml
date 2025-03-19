@@ -1,0 +1,21 @@
+name: databases-pubsub-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/databases-pubsub-ci.yml'
+      - 'databases/cloud-pubsub/**'
+  pull_request:
+    paths:
+      - '.github/workflows/databases-pubsub-ci.yml'
+      - 'databases/cloud-pubsub/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build cloud-pubsub container
+        run: |
+          cd databases/cloud-pubsub
+          docker build --tag cloud-pubsub .

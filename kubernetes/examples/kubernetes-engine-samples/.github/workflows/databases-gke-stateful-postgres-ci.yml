@@ -1,0 +1,34 @@
+name: databases-gke-stateful-postgres-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/databases-gke-stateful-postgres-ci.yml'
+      - 'databases/gke-stateful-postgres/**'
+  pull_request:
+    paths:
+      - '.github/workflows/databases-gke-stateful-postgres-ci.yml'
+      - 'databases/gke-stateful-postgres/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate GKE Autopilot TF
+        run: |
+          cd databases/gke-stateful-postgres/terraform/gke-autopilot
+          terraform init
+          terraform validate
+      - name: Validate GKE Standard TF
+        run: |
+          cd databases/gke-stateful-postgres/terraform/gke-standard
+          terraform init
+          terraform validate
+      - name: Validate Monitoring TF
+        run: |
+          cd databases/gke-stateful-postgres/monitoring/alerting/terraform
+          terraform init
+          terraform validate
+      
+      

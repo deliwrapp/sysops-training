@@ -1,0 +1,70 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: gke-pg-cluster
+spec:
+  description: "Standard GKE PostgreSQL cluster"
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.0
+  instances: 3
+  startDelay: 300
+  primaryUpdateStrategy: unsupervised
+  postgresql:
+    pg_hba:
+      - host all all 10.48.0.0/20 md5
+  bootstrap:
+    initdb:
+      database: app
+  backup:
+    barmanObjectStore:
+      destinationPath: "gs://<PROJECT_ID>-postgres-backup"
+      googleCredentials:
+        gkeEnvironment: true
+    retentionPolicy: "7d"
+  serviceAccountTemplate:
+    metadata:
+      annotations:
+        iam.gke.io/gcp-service-account: postgres-buckets-access@<PROJECT_ID>.iam.gserviceaccount.com
+  storage:
+    storageClass: premium-rwo
+    size: 2Gi
+  resources:
+    requests:
+      memory: "4Gi"
+      cpu: "1"
+    limits:
+      memory: "4Gi"
+      cpu: "2"
+  affinity:
+    enablePodAntiAffinity: true
+    tolerations:
+    - key: cnpg.io/cluster
+      effect: NoSchedule
+      value: gke-pg-cluster
+      operator: Equal
+    additionalPodAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 1
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app.component
+              operator: In
+              values:
+              - "pg-cluster"
+          topologyKey: topology.kubernetes.io/zone
+  monitoring:
+    enablePodMonitor: true

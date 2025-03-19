@@ -1,0 +1,71 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: databases-ci.yml
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/databases-ci.yml'
+      - 'databases'
+  pull_request:
+    paths:
+      - '.github/workflows/databases-ci.yml'
+      - 'databases'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build hello-app-cloud-spanner container
+        run: |
+          cd databases/hello-app-cloud-spanner
+          docker build --tag hello-app-cloud-spanner .
+      - name: Validate GKE Autopilot TF for Spotahome
+        run: |
+          cd databases/redis-spotahome/terraform/gke-autopilot
+          terraform init
+          terraform validate
+      - name: Validate GKE Standard TF for Spotahome
+        run: |
+          cd databases/redis-spotahome/terraform/gke-standard
+          terraform init
+          terraform validate
+      - name: Validate GKE Standard TF for Redis Enterprise
+        run: |
+          cd databases/redis-enterprise-operator/terraform/gke-standard
+          terraform init
+          terraform validate
+      - name: Validate GKE Autopilot TF for Redis replication
+        run: |
+          cd databases/redis/terraform/gke-replication
+          terraform init
+          terraform validate
+      - name: Validate GKE Standard TF for Postgres replication
+        run: |
+          cd databases/postgres/terraform/gke-replication
+          terraform init
+          terraform validate
+      - name: Validate GKE Autopilot TF for Zalando
+        run: |
+          cd databases/postgres-zalando/terraform/gke-autopilot
+          terraform init
+          terraform validate
+      - name: Validate GKE Standard TF for Zalando
+        run: |
+          cd databases/postgres-zalando/terraform/gke-standard
+          terraform init
+          terraform validate
+

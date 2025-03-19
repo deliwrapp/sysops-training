@@ -1,0 +1,266 @@
+name: Pipeline using Docker cloud services
+
+on:
+  push:
+    branches:
+      - main
+    tags: 
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  prettier:
+    name: "Validate code formatting"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load Environment Variables
+        uses: ./.github/workflows/load-env
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --omit=optional
+
+      - name: Run Prettier
+        run: npm run prettier-check
+
+  unit-test:
+    name: "Run tests"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load Environment Variables
+        uses: ./.github/workflows/load-env
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --omit=optional
+
+      - name: Run unit tests
+        run: npm run unit-test
+  
+  integration-test:
+    name: "Run integration tests"
+    needs: [ prettier, unit-test ]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load Environment Variables
+        uses: ./.github/workflows/load-env
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --omit=optional
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Setup Testcontainers Cloud Client
+        uses: atomicjar/testcontainers-cloud-setup-action@v1
+        with:
+          token: ${{ secrets.TC_CLOUD_TOKEN }}
+
+      - name: Run integration tests
+        run: npm run integration-test
+
+  build:
+    name: Build and push image
+    needs: [ integration-test ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    outputs:
+      IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+    
+    steps:
+      - uses: actions/checkout@v3
+  
+      # Needed to access DBC builders
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+    
+      - name: Determine image tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.GCLOUD_REPO_URL }}
+          tags: |
+            type=ref,enable=true,event=branch,suffix=--{{sha}}
+            type=ref,enable=true,event=branch,suffix=--latest
+            type=ref,event=tag
+            type=ref,event=pr
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # Configure Buildx to use the DBC builders
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: cloud
+          endpoint: ${{ secrets.DBC_BUILDER_NAME }}
+
+      # Authenticate to GCloud since we're pushing to GAR
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider:  ${{ secrets.GCLOUD_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCLOUD_SERVICE_ACCOUNT }}
+
+      # Configure GCloud
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+        with:
+          version: ">= 363.0.0"
+
+      # Configure Docker auth
+      - name: Configure docker with gcloud credentials
+        run: |-
+          gcloud auth configure-docker us-east1-docker.pkg.dev --quiet
+ 
+      # Actually do the build and push now
+      - id: build
+        name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          provenance: mode=max
+          sbom: true
+          push: true
+          load: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  sign:
+    name: Sign images
+    runs-on: ubuntu-latest
+    needs: [ "build" ]
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Install regctl
+        uses: regclient/actions/regctl-installer@main
+        with:
+          release: 'v0.8.2'
+
+      # Authenticate to GCloud since we're going to be adding signatures
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider:  ${{ secrets.GCLOUD_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCLOUD_SERVICE_ACCOUNT }}
+
+      # Configure GCloud CLI
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+        with:
+          version: ">= 363.0.0"
+
+      # Configure Docker auth
+      - name: Configure docker with gcloud credentials
+        run: |-
+          gcloud auth configure-docker us-east1-docker.pkg.dev --quiet
+    
+    
+      - name: Create an Binary Authorization attestation for the image
+        run: |
+          echo -n "$ATTESTOR_PRIVATE_KEY" > /tmp/private-key.pem
+  
+          regctl manifest get --format raw-body ${IMAGE_PATH}@${IMAGE_DIGEST} > /tmp/image_manifest.json
+          DIGEST_HASHES=$(jq '.manifests[] | select(.platform.os == "linux") | .digest' /tmp/image_manifest.json -r)
+  
+          echo "Found hashes ${DIGEST_HASHES}"
+  
+          for DIGEST in "${DIGEST_HASHES[@]}"; do
+            export IMAGE_TO_ATTEST=${IMAGE_PATH}@${DIGEST}
+  
+            echo "Creating signature payload now..."
+            gcloud container binauthz create-signature-payload \
+              --artifact-url=${IMAGE_TO_ATTEST} > /tmp/generated_payload.json
+  
+            cat /tmp/generated_payload.json
+            
+            echo "Signing the payload now..."
+            openssl dgst -sha256 -sign /tmp/private-key.pem /tmp/generated_payload.json > /tmp/ec_signature
+  
+            echo "Creating attestation now..."
+            gcloud container binauthz attestations create \
+              --project="${GCLOUD_PROJECT_ID}" \
+              --artifact-url="${IMAGE_TO_ATTEST}" \
+              --attestor="projects/${GCLOUD_PROJECT_ID}/attestors/${ATTESTOR_NAME}" \
+              --signature-file=/tmp/ec_signature \
+              --public-key-id="${ATTESTOR_PUBLIC_KEY_ID}" \
+              --validate
+          done
+
+        env:
+          GCLOUD_PROJECT_ID: "gcn-2025"
+          IMAGE_PATH: ${{ secrets.GCLOUD_REPO_URL }}
+          IMAGE_DIGEST: ${{ needs.build.outputs.IMAGE_DIGEST }}
+          ATTESTOR_NAME: ${{ secrets.GCLOUD_ATTESTOR_NAME }}
+          ATTESTOR_PUBLIC_KEY_ID: ${{ secrets.GCLOUD_ATTESTOR_PUBLIC_KEY_ID }}
+          ATTESTOR_PRIVATE_KEY: ${{ secrets.GCLOUD_ATTESTOR_PRIVATE_KEY }}
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    needs: [ "build", "sign" ]
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      # Authenticate to GCloud since we're going to be adding signatures
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider:  ${{ secrets.GCLOUD_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCLOUD_SERVICE_ACCOUNT }}
+
+      # Configure GCloud CLI
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+        with:
+          version: ">= 363.0.0"
+
+      #  Update Google Cloud Run to use the new image
+      - name: Deploy test image
+        run: |
+          gcloud run deploy catalog-service --region=us-east1 --image=$IMAGE --port 3000
+        env:
+          IMAGE: ${{ secrets.GCLOUD_REPO_URL }}@${{ needs.build.outputs.IMAGE_DIGEST }}

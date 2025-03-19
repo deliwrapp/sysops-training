@@ -1,0 +1,119 @@
+---
+- name: Déploiement Symfony depuis GitLab
+  hosts: your_server
+  become: yes
+
+  vars:
+    php_version: "8.2"  # Version PHP souhaitée
+    node_version: "20"  # Version Node.js souhaitée
+    destination_path: "/var/www/symfony"  # Chemin de destination du déploiement
+    git_repo_url: "git@gitlab.com:your_username/your_symfony_project.git"  # URL du dépôt Git
+    git_branch: "main"  # Branche par défaut pour le déploiement, peut être remplacée par une variable
+    git_single_branch: "yes" # Défini si l'ensembe des branche sont cloné ou non
+    db_user: "your_db_user"  # Utilisateur de la base de données
+    db_password: "your_db_password"  # Mot de passe de la base de données
+    db_name: "your_db_name"  # Nom de la base de données
+    mailer_transport: "smtp"  # Transport du mailer (smtp, mail, sendmail, etc.)
+    mailer_host: "your_mailer_host"  # Hôte du serveur mail
+    mailer_user: "your_mailer_user"  # Nom d'utilisateur pour le serveur mail
+    mailer_password: "your_mailer_password"  # Mot de passe pour le serveur mail
+
+  tasks:
+    - name: Vérifier l'installation de Git
+      become: yes
+      command: "which git"
+      register: git_installed
+      ignore_errors: yes
+
+    - name: Installer Git si nécessaire
+      become: yes
+      package:
+        name: git
+        state: present
+      when: git_installed.rc != 0
+
+    - name: Vérifier l'installation de PHP
+      become: yes
+      command: "php -v | grep 'PHP {{ php_version }}'"
+      register: php_installed
+      ignore_errors: yes
+
+    - name: Installer PHP si nécessaire
+      become: yes
+      package:
+        name: "php{{ php_version }}"
+        state: present
+      when: php_installed.rc != 0
+
+    - name: Vérifier l'installation de Composer
+      become: yes
+      command: "which composer"
+      register: composer_installed
+      ignore_errors: yes
+
+    - name: Installer Composer si nécessaire
+      become: yes
+      command: "php -r \"copy('https://getcomposer.org/installer', 'composer-setup.php');\""
+      args:
+        creates: "/usr/local/bin/composer"
+      when: composer_installed.rc != 0
+
+    - name: Vérifier l'installation de Node.js
+      become: yes
+      command: "node -v | grep 'v{{ node_version }}'"
+      register: node_installed
+      ignore_errors: yes
+
+    - name: Installer Node.js si nécessaire
+      become: yes
+      command: "curl -sL https://deb.nodesource.com/setup_{{ node_version }}.x | sudo -E bash - && sudo apt-get install -y nodejs"
+      when: node_installed.rc != 0
+
+    - name: Vérifier l'installation de Symfony CLI
+      become: yes
+      command: "which symfony"
+      register: symfony_cli_installed
+      ignore_errors: yes
+
+    - name: Installer Symfony CLI si nécessaire
+      become: yes
+      command: "curl -sS https://get.symfony.com/cli/installer | bash && mv /root/.symfony*/symfony /usr/local/bin/symfony"
+      args:
+        creates: "/usr/local/bin/symfony"
+      when: symfony_cli_installed.rc != 0
+
+    - name: Cloner le dépôt depuis Git avec la branche spécifiée
+      become: yes
+      git:
+        repo: "{{ git_repo_url }}"
+        dest: "{{ destination_path }}"
+        version: "{{ git_branch }}"
+        single_branch: "{{ git_single_branch }}"
+
+    - name: Déployer Symfony avec Composer en mode PROD
+      become: yes
+      command: "composer install --no-dev --optimize-autoloader"
+      args:
+        chdir: "{{ destination_path }}"
+
+    - name: Exécuter les migrations de base de données Symfony
+      become: yes
+      command: "php bin/console doctrine:migrations:migrate --no-interaction"
+      args:
+        chdir: "{{ destination_path }}"
+      environment:
+        APP_ENV: prod
+
+    - name: Créer le fichier .env avec les variables de base de données et de mailer
+      become: yes
+      template:
+        src: templates/.env.j2
+        dest: "{{ destination_path }}/.env"
+      vars:
+        db_user: "{{ db_user }}"
+        db_password: "{{ db_password }}"
+        db_name: "{{ db_name }}"
+        mailer_transport: "{{ mailer_transport }}"
+        mailer_host: "{{ mailer_host }}"
+        mailer_user: "{{ mailer_user }}"
+        mailer_password: "{{ mailer_password }}"

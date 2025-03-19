@@ -1,0 +1,82 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.game-container {
+    text-align: center;
+    width: 450px;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+}
+
+.label {
+    font-size: 16px;
+    margin-right: 10px;
+}
+
+.dropdown, .btn, .file-input {
+    padding: 10px 15px;
+    font-size: 16px;
+    margin: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+}
+
+.dropdown {
+    background-color: #fff;
+    color: #333;
+}
+
+.btn {
+    background-color: #6200ea;
+    color: #fff;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+
+.btn:hover {
+    background-color: #3700b3;
+}
+
+.file-input {
+    display: inline-block;
+    margin-top: 10px;
+    color: #333;
+}
+
+.scoreboard {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    gap: 20px;
+}
+
+.scoreboard h2 {
+    font-size: 20px;
+    margin: 0;
+    color: #6200ea;
+    padding: 10px;
+}
+
+canvas {
+    border: 2px solid #6200ea;
+    background-color: #fff;
+}

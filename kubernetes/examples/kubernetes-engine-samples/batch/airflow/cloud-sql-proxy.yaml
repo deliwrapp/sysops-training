@@ -1,0 +1,79 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# [START gke_batch_airflow_cloud_sql_proxy_service_account]
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: airflow-metadata-db
+  namespace: airflow
+  annotations:
+    iam.gke.io/gcp-service-account: airflow-metadata-db@PROJECT_ID.iam.gserviceaccount.com
+# [END gke_batch_airflow_cloud_sql_proxy_service_account]
+---
+# [START gke_batch_airflow_cloud_sql_proxy_deployment]
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloud-sql-proxy
+  namespace: airflow
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloud-sql-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cloud-sql-proxy
+    spec:
+      serviceAccountName: airflow-metadata-db
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - name: cloud-sql-proxy
+        image: us.gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.3.0-alpine
+        args:
+          - "PROJECT_ID:us-central1:airflow-metadata"
+          - "--private-ip"
+          - "--address"
+          - "0.0.0.0"
+          - "--port"
+          - "5432"
+        ports:
+          - containerPort: 5432
+        resources:
+          limits:
+            cpu: 250m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+# [END gke_batch_airflow_cloud_sql_proxy_deployment]
+---
+# [START gke_batch_airflow_cloud_sql_proxy_service]
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow-metadata-db
+  namespace: airflow
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: cloud-sql-proxy
+  ports:
+  - port: 5432
+    targetPort: 5432
+# [END gke_batch_airflow_cloud_sql_proxy_service]

@@ -1,0 +1,45 @@
+name: quickstarts-languages-ci
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/quickstarts-languages-ci.yml'
+      - 'quickstarts/languages/**'
+  pull_request:
+    paths:
+      - '.github/workflows/quickstarts-languages-ci.yml'
+      - 'quickstarts/languages/**'
+jobs:
+  job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: build quickstart-dotnet container
+        run: |
+          cd quickstarts/languages/dotnet
+          docker build --tag quickstart-dotnet .
+      - name: build quickstart-go container
+        run: |
+          cd quickstarts/languages/go
+          docker build --tag quickstart-go .
+      - name: build quickstart-java container
+        run: |
+          cd quickstarts/languages/java
+          docker build --tag quickstart-java .
+      - name: build quickstart-nodejs container
+        run: |
+          cd quickstarts/languages/nodejs
+          docker build --tag quickstart-nodejs .
+      - name: build quickstart-php container
+        run: |
+          cd quickstarts/languages/php
+          docker build --tag quickstart-php .
+      - name: build quickstart-python container
+        run: |
+          cd quickstarts/languages/python
+          docker build --tag quickstart-python .
+      - name: build quickstart-ruby container
+        run: |
+          cd quickstarts/languages/ruby
+          docker build --tag quickstart-ruby .

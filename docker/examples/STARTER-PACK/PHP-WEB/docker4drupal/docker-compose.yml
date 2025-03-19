@@ -1,0 +1,152 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: wodby/mariadb:$MARIADB_TAG
+    container_name: "${PROJECT_NAME}_mariadb"
+    stop_grace_period: 30s
+    environment:
+      MYSQL_ROOT_PASSWORD: $DB_ROOT_PASSWORD
+      MYSQL_DATABASE: $DB_NAME
+      MYSQL_USER: $DB_USER
+      MYSQL_PASSWORD: $DB_PASSWORD
+      MYSQL_TRANSACTION_ISOLATION: READ-COMMITTED
+#    volumes:
+#      - ./mariadb-init:/docker-entrypoint-initdb.d # Place init .sql file(s) here.
+#      - /path/to/mariadb/data/on/host:/var/lib/mysql # Use bind mount
+
+  php:
+    image: wodby/drupal-php:$PHP_TAG
+    container_name: "${PROJECT_NAME}_php"
+    environment:
+      # By default xdebug extension also disabled.
+      PHP_EXTENSIONS_DISABLE: xhprof,spx
+      PHP_MAIL_MIXED_LF_AND_CRLF: 'On'
+      PHP_SENDMAIL_PATH: '/bin/busybox sendmail -t -i -S mailhog:25'
+      # Mailpit:
+      MSMTP_HOST: mailpit
+      MSMTP_PORT: 1025
+#      # OpenSMTPD:
+#      MSMTP_HOST: opensmtpd
+#      MSMTP_PORT: 25
+      DB_HOST: $DB_HOST
+      DB_PORT: $DB_PORT
+      DB_USER: $DB_USER
+      DB_PASSWORD: $DB_PASSWORD
+      DB_NAME: $DB_NAME
+      DB_DRIVER: $DB_DRIVER
+#      DRUSH_OPTIONS_URI: "http://${PROJECT_BASE_URL}:${PROJECT_PORT}"
+#      PHP_FPM_USER: wodby
+#      PHP_FPM_GROUP: wodby
+#      COLUMNS: 80 # Set 80 columns for docker exec -it.
+#      # Read instructions at https://wodby.com/docs/stacks/php/local/#xdebug
+#      PHP_XDEBUG_MODE: debug
+#      PHP_XDEBUG_MODE: profile
+#      PHP_XDEBUG_USE_COMPRESSION: false
+#      PHP_IDE_CONFIG: serverName=my-ide
+#      PHP_XDEBUG_IDEKEY: "my-ide"
+#      PHP_XDEBUG_LOG: /tmp/php-xdebug.log
+#      # PHPUnit Drupal testing configurations
+#      SIMPLETEST_BASE_URL: "http://nginx"
+#      SIMPLETEST_DB: "${DB_DRIVER}://${DB_USER}:${DB_PASSWORD}@${DB_HOST}/${DB_NAME}#tests_"
+#      MINK_DRIVER_ARGS_WEBDRIVER: '["chrome", {"browserName":"chrome","goog:chromeOptions":{"args":["--disable-gpu","--headless"]}}, "http://chrome:9515"]'
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
+    volumes:
+     - ./:/var/www/html:cached
+## Alternative for macOS users: Mutagen https://wodby.com/docs/stacks/drupal/local#docker-for-mac
+#    - drupal:/var/www/html
+## For XHProf and Xdebug profiler traces
+#    - files:/mnt/files
+  
+  crond:
+    init: true
+    image: wodby/drupal-php:$PHP_TAG
+    container_name: "${PROJECT_NAME}_crond"
+    environment:
+      CRONTAB: "0 * * * * drush -r /var/www/html/web cron"
+    command: sudo -E crond -f -d 0
+    volumes:
+    - ./:/var/www/html:cached
+## Alternative for macOS users: Mutagen https://wodby.com/docs/stacks/drupal/local#docker-for-mac
+#    - drupal:/var/www/html
+
+  apache:
+    image: wodby/apache:$APACHE_TAG
+    container_name: "${PROJECT_NAME}_apache"
+    depends_on:
+    - php
+    environment:
+      APACHE_LOG_LEVEL: debug
+      APACHE_BACKEND_HOST: php
+      APACHE_VHOST_PRESET: php
+      APACHE_DOCUMENT_ROOT: /var/www/html/web
+    volumes:
+    - ./:/var/www/html:cached
+## Alternative for macOS users: Mutagen https://wodby.com/docs/stacks/drupal/local#docker-for-mac
+#    - drupal:/var/www/html
+    labels:
+    - "traefik.http.routers.${PROJECT_NAME}_apache.rule=Host(`${PROJECT_BASE_URL}`)"
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: "${PROJECT_NAME}_mailpit"
+    labels:
+    - "traefik.http.services.${PROJECT_NAME}_mailpit.loadbalancer.server.port=8025"
+    - "traefik.http.routers.${PROJECT_NAME}_mailpit.rule=Host(`mailpit.${PROJECT_BASE_URL}`)"
+
+  pma:
+    image: phpmyadmin/phpmyadmin
+    container_name: "${PROJECT_NAME}_pma"
+    environment:
+      PMA_HOST: $DB_HOST
+      PMA_USER: $DB_USER
+      PMA_PASSWORD: $DB_PASSWORD
+      UPLOAD_LIMIT: 1G
+    labels:
+    - "traefik.http.routers.${PROJECT_NAME}_pma.rule=Host(`pma.${PROJECT_BASE_URL}`)"
+
+  memcached:
+    container_name: "${PROJECT_NAME}_memcached"
+    image: wodby/memcached:$MEMCACHED_TAG
+
+#  node:
+#    image: wodby/node:$NODE_TAG
+#    container_name: "${PROJECT_NAME}_node"
+#    working_dir: /var/www/html/web/themes/
+#    labels:
+#    - "traefik.http.services.${PROJECT_NAME}_node.loadbalancer.server.port=3000"
+#    - "traefik.http.routers.${PROJECT_NAME}_node.rule=Host(`node.${PROJECT_BASE_URL}`)"
+#    expose:
+#    - "3000"
+#    volumes:
+#    - ./:/var/www/html
+#    command: sh -c 'yarn install && yarn run start'
+
+  webgrind:
+    image: wodby/webgrind:$WEBGRIND_TAG
+    container_name: "${PROJECT_NAME}_webgrind"
+    environment:
+      WEBGRIND_PROFILER_DIR: /mnt/files/xdebug
+    labels:
+    - "traefik.http.routers.${PROJECT_NAME}_webgrind.rule=Host(`webgrind.${PROJECT_BASE_URL}`)"
+    volumes:
+    - files:/mnt/files
+
+#  opensmtpd:
+#    container_name: "${PROJECT_NAME}_opensmtpd"
+#    image: wodby/opensmtpd:$OPENSMTPD_TAG
+
+  traefik:
+    image: traefik:v2.0
+    container_name: "${PROJECT_NAME}_traefik"
+    command: --api.insecure=true --providers.docker
+    ports:
+    - "${PROJECT_PORT}:80"
+#    - '8080:8080' # Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  # For Xdebug profiler
+  files:

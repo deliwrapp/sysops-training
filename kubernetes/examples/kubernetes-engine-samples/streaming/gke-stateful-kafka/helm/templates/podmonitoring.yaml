@@ -1,0 +1,11 @@
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: kafka
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: kafka
+  endpoints:
+  - port: metrics
+    interval: 30s
