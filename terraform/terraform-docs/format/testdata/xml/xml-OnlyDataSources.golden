@@ -1,0 +1,29 @@
+<module>
+  <header></header>
+  <footer></footer>
+  <inputs></inputs>
+  <modules></modules>
+  <outputs></outputs>
+  <providers></providers>
+  <requirements></requirements>
+  <resources>
+    <resource>
+      <type>caller_identity</type>
+      <name>current</name>
+      <provider>aws</provider>
+      <source>hashicorp/aws</source>
+      <mode>data</mode>
+      <version>latest</version>
+      <description xsi:nil="true"></description>
+    </resource>
+    <resource>
+      <type>caller_identity</type>
+      <name>ident</name>
+      <provider>aws</provider>
+      <source>hashicorp/aws</source>
+      <mode>data</mode>
+      <version>latest</version>
+      <description xsi:nil="true"></description>
+    </resource>
+  </resources>
+</module>

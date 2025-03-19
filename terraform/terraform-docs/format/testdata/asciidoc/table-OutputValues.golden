@@ -1,0 +1,25 @@
+== Outputs
+
+[cols="a,a,a,a",options="header,autowidth"]
+|===
+|Name |Description |Value |Sensitive
+|unquoted |It's unquoted output. |
+
+```
+{
+  "leon": "cat"
+}
+```
+ |no
+|output-2 |It's output number two. |
+
+```
+[
+  "jack",
+  "lola"
+]
+```
+ |no
+|output-1 |It's output number one. |`1` |no
+|output-0.12 |terraform 0.12 only |`<sensitive>` |yes
+|===

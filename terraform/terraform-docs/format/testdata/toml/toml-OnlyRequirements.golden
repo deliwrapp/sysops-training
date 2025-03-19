@@ -1,0 +1,23 @@
+header = ""
+footer = ""
+inputs = []
+modules = []
+outputs = []
+providers = []
+resources = []
+
+[[requirements]]
+  name = "terraform"
+  version = ">= 0.12"
+
+[[requirements]]
+  name = "aws"
+  version = ">= 2.15.0"
+
+[[requirements]]
+  name = "foo"
+  version = ">= 1.0"
+
+[[requirements]]
+  name = "random"
+  version = ">= 2.2.0"

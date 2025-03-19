@@ -1,0 +1,40 @@
+## Outputs
+
+The following outputs are exported:
+
+### unquoted
+
+Description: It's unquoted output.
+
+Value:
+
+```json
+{
+  "leon": "cat"
+}
+```
+
+### output-2
+
+Description: It's output number two.
+
+Value:
+
+```json
+[
+  "jack",
+  "lola"
+]
+```
+
+### output-1
+
+Description: It's output number one.
+
+Value: `1`
+
+### output-0.12
+
+Description: terraform 0.12 only
+
+Value: `<sensitive>`

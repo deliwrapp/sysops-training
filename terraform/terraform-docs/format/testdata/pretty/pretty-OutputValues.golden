@@ -1,0 +1,16 @@
+output.unquoted ({
+  "leon": "cat"
+})
+It's unquoted output.
+
+output.output-2 ([
+  "jack",
+  "lola"
+])
+It's output number two.
+
+output.output-1 (1)
+It's output number one.
+
+output.output-0.12 (<sensitive>)
+terraform 0.12 only

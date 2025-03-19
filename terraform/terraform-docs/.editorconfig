@@ -1,0 +1,47 @@
+# http://editorconfig.org
+
+# this file is the top-most editorconfig file
+root = true
+
+# all files
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.go]
+indent_style = tab
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = true
+
+[examples/doc.{adoc,md,tf,txt};examples/footer.md]
+trim_trailing_whitespace = false
+insert_final_newline = false
+
+[*.{golden,tmpl}]
+trim_trailing_whitespace = false
+insert_final_newline = false
+
+[*.expected]
+trim_trailing_whitespace = false
+insert_final_newline = false
+
+[*.{yaml,yml}]
+indent_size = 2
+
+[*.tf]
+trim_trailing_whitespace = false
+
+[**/inputs-crlf/variables.tf]
+end_of_line = crlf
+
+[**/outputs-crlf/outputs.tf]
+end_of_line = crlf
+
+[Makefile]
+indent_style = tab

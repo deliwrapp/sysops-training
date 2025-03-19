@@ -1,0 +1,10 @@
+<module>
+  <header></header>
+  <footer></footer>
+  <inputs></inputs>
+  <modules></modules>
+  <outputs></outputs>
+  <providers></providers>
+  <requirements></requirements>
+  <resources></resources>
+</module>

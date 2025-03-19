@@ -1,0 +1,125 @@
+project_name: terraform-docs
+
+builds:
+  - main: .
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/terraform-docs/terraform-docs/internal/version.commit={{ .ShortCommit }}
+    goos:
+      - darwin
+      - linux
+      - freebsd
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    ignore:
+      - goos: darwin
+        goarch: arm
+      - goos: windows
+        goarch: arm
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .Binary }}-{{ .Tag }}-{{ .Os }}-{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "{{ .ProjectName }}-{{ .Tag }}.sha256sum"
+
+snapshot:
+  name_template: "{{ .Tag }}-dev"
+
+release:
+  github:
+    owner: terraform-docs
+    name: terraform-docs
+  header: |
+    ## Notable Updates
+  footer: |
+    ## Docker images
+
+    - `docker pull quay.io/terraform-docs/terraform-docs:latest`
+    - `docker pull quay.io/terraform-docs/terraform-docs:{{ .RawVersion }}`
+
+    ## Contributors
+
+    Very special thanks to the contributors.
+
+    {{ .Env.Contributors }}
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^Merge pull request"
+  groups:
+    - title: Dependency updates
+      regexp: '^.*?(.+)\(deps\)!?:.+$'
+      order: 300
+    - title: "Features"
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 100
+    - title: "Security updates"
+      regexp: '^.*?sec(\(.+\))??!?:.+$'
+      order: 150
+    - title: "Bug Fixes"
+      regexp: '^.*?(fix|refactor)(\(.+\))??!?:.+$'
+      order: 200
+    - title: "Chores"
+      order: 9999
+
+dockers:
+  - dockerfile: scripts/release/Dockerfile
+    image_templates:
+      - "quay.io/terraform-docs/terraform-docs:latest-amd64"
+      - "quay.io/terraform-docs/terraform-docs:{{ .RawVersion }}-amd64"
+    use: buildx
+    build_flag_templates:
+    - "--pull"
+    - "--platform=linux/amd64"
+  - dockerfile: scripts/release/Dockerfile
+    image_templates:
+      - "quay.io/terraform-docs/terraform-docs:latest-arm64"
+      - "quay.io/terraform-docs/terraform-docs:{{ .RawVersion }}-arm64"
+    use: buildx
+    build_flag_templates:
+    - "--pull"
+    - "--platform=linux/arm64"
+    goarch: arm64
+
+brews:
+  - repository:
+      owner: terraform-docs
+      name: homebrew-tap
+    commit_author:
+      name: terraform-docs-bot
+      email: bot@terraform-docs.io
+    url_template: "https://github.com/terraform-docs/terraform-docs/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    homepage: "https://github.com/terraform-docs/"
+    description: "Generate documentation from Terraform modules in various output formats"
+    test: |
+      system "#{bin}/terraform-docs version"
+
+scoops:
+  - repository:
+      owner: terraform-docs
+      name: scoop-bucket
+    commit_author:
+      name: terraform-docs-bot
+      email: bot@terraform-docs.io
+    commit_msg_template: "Scoop update for {{ .ProjectName }} version {{ .Tag }}"
+    url_template: "https://github.com/terraform-docs/terraform-docs/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    homepage: "https://github.com/terraform-docs/"
+    description: "Generate documentation from Terraform modules in various output formats"
+    license: MIT

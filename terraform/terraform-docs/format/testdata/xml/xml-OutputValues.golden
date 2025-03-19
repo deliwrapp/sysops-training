@@ -1,0 +1,40 @@
+<module>
+  <header></header>
+  <footer></footer>
+  <inputs></inputs>
+  <modules></modules>
+  <outputs>
+    <output>
+      <name>unquoted</name>
+      <description>It&#39;s unquoted output.</description>
+      <value>
+        <leon>cat</leon>
+      </value>
+      <sensitive>false</sensitive>
+    </output>
+    <output>
+      <name>output-2</name>
+      <description>It&#39;s output number two.</description>
+      <value>
+        <item>jack</item>
+        <item>lola</item>
+      </value>
+      <sensitive>false</sensitive>
+    </output>
+    <output>
+      <name>output-1</name>
+      <description>It&#39;s output number one.</description>
+      <value>1</value>
+      <sensitive>false</sensitive>
+    </output>
+    <output>
+      <name>output-0.12</name>
+      <description>terraform 0.12 only</description>
+      <value>&lt;sensitive&gt;</value>
+      <sensitive>true</sensitive>
+    </output>
+  </outputs>
+  <providers></providers>
+  <requirements></requirements>
+  <resources></resources>
+</module>

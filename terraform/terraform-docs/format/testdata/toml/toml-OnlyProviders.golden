@@ -1,0 +1,32 @@
+header = ""
+footer = ""
+inputs = []
+modules = []
+outputs = []
+requirements = []
+resources = []
+
+[[providers]]
+  name = "tls"
+  alias = ""
+  version = ""
+
+[[providers]]
+  name = "foo"
+  alias = ""
+  version = ">= 1.0"
+
+[[providers]]
+  name = "aws"
+  alias = ""
+  version = ">= 2.15.0"
+
+[[providers]]
+  name = "aws"
+  alias = "ident"
+  version = ">= 2.15.0"
+
+[[providers]]
+  name = "null"
+  alias = ""
+  version = ""

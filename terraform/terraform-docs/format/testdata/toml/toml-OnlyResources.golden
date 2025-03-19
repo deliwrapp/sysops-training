@@ -1,0 +1,34 @@
+header = ""
+footer = ""
+inputs = []
+modules = []
+outputs = []
+providers = []
+requirements = []
+
+[[resources]]
+  type = "resource"
+  name = "baz"
+  provider = "foo"
+  source = "https://registry.acme.com/foo"
+  mode = "managed"
+  version = "latest"
+  description = ""
+
+[[resources]]
+  type = "resource"
+  name = "foo"
+  provider = "null"
+  source = "hashicorp/null"
+  mode = "managed"
+  version = "latest"
+  description = ""
+
+[[resources]]
+  type = "private_key"
+  name = "baz"
+  provider = "tls"
+  source = "hashicorp/tls"
+  mode = "managed"
+  version = "latest"
+  description = "this description for tls_private_key.baz which can be multiline."

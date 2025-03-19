@@ -1,0 +1,29 @@
+header = ""
+footer = ""
+inputs = []
+modules = []
+providers = []
+requirements = []
+resources = []
+
+[[outputs]]
+  name = "unquoted"
+  description = "It's unquoted output."
+  [outputs.value]
+    leon = "cat"
+
+[[outputs]]
+  name = "output-2"
+  description = "It's output number two."
+  value = ["jack", "lola"]
+
+[[outputs]]
+  name = "output-1"
+  description = "It's output number one."
+  value = 1.0
+
+[[outputs]]
+  name = "output-0.12"
+  description = "terraform 0.12 only"
+  value = "<sensitive>"
+  sensitive = true
