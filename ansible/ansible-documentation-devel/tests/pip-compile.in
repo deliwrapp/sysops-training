@@ -1,0 +1,2 @@
+# Pin the version of uv used for the pip-compile nox session
+uv
