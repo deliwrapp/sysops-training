@@ -84,6 +84,10 @@ spec:
       nodePort: 30080
 ```
 
+```shell
+minikube service mon-service --url -n formation
+```
+
 **Déploiement :**
 
 ```shell
